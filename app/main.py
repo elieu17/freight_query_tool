@@ -28,7 +28,6 @@ def home(request: Request):
         }
     )
 
-
 @app.get("/rates", response_class=HTMLResponse)
 def rates_page(
     request: Request,
