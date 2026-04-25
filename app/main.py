@@ -63,9 +63,14 @@ def rates_page(
         }
 
         return templates.TemplateResponse(
-            "index.html",
-            {"request": request, "results": results, "error": None, "q": q}
-        )
+    "index.html",
+        {
+        "request": request,
+        "results": results,
+        "error": None,
+        "q": q
+        }
+    )
     finally:
         db.close()
 
