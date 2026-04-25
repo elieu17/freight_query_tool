@@ -16,12 +16,9 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "results": None, "error": None, "q": None}
-    )
+@app.get("/")
+def home():
+    return {"status": "Render is working"}
 
 
 @app.get("/rates", response_class=HTMLResponse)
