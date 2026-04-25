@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 import csv
 import io
 
@@ -9,8 +10,10 @@ from fastapi.templating import Jinja2Templates
 from app.db import SessionLocal
 from app.queries import search_rates, find_ports
 
+
 app = FastAPI(title="Rate Query")
-templates = Jinja2Templates(directory="app/templates")
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @app.get("/", response_class=HTMLResponse)
