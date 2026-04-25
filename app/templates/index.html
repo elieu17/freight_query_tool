@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Rate Query</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; }
+      .row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: end; }
+      label { display: block; font-size: 0.85rem; color: #444; margin-bottom: 0.25rem; }
+      input, select { padding: 0.45rem; min-width: 160px; height: 2.4rem; box-sizing: border-box; }
+      input[type="checkbox"] {   width: auto;   min-width: auto;   height: auto;   margin: 0;   vertical-align: middle; }
+      button { height: 2.4rem; padding: 0.55rem 0.9rem; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; } 
+      .clear-btn { display: inline-flex; align-items: center; justify-content: center; height: 2.4rem; padding: 0.55rem 0.9rem; border: 1px solid #ccc; text-decoration: none; color: #000; background: #f5f5f5; border-radius: 4px; box-sizing: border-box; }
+      table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+      th, td { border: 1px solid #ddd; padding: 0.5rem; }
+      th { background: #f5f5f5; text-align: left; }
+      .hint { color: #666; font-size: 0.9rem; margin-top: 0.5rem; }
+      .error { color: #b00020; margin-top: 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Rate Query</h1>
+
+    <form action="/rates" method="get">
+      <div class="row">
+        <div>
+          <label>Origin</label>
+          <input id="origin_input" name="origin" list="origin_list" autocomplete="off" value="{{ q.origin if q else '' }}" required />
+          <datalist id="origin_list"></datalist>
+        </div>
+
+        <div>
+          <label>Destination</label>
+          <input id="destination_input" name="destination" list="destination_list" autocomplete="off" value="{{ q.destination if q else '' }}" required />
+          <datalist id="destination_list"></datalist>
+        </div>
+
+        <div>
+          <label>Equipment</label>
+          <select name="equipment_type">
+              <option value="" {% if not q or not q.equipment_type %}selected{% endif %}>
+                All equipment
+              </option>
+              <option value="" disabled {% if not q %}selected{% endif %}>Select equipment</option>
+              <option value="20GP" {% if q and q.equipment_type == '20GP' %}selected{% endif %}>20GP</option>
+              <option value="40GP" {% if q and q.equipment_type == '40GP' %}selected{% endif %}>40GP</option>
+              <option value="40HC" {% if q and q.equipment_type == '40HC' %}selected{% endif %}>40HC</option>
+          </select>
+
+        </div>
+        <div>
+          <label>
+          <input type="checkbox" name="dg" value="1" {% if q and q.dg %}checked{% endif %}>
+            Dangerous Goods (DG)
+          </label>
+        </div>
+
+        <div>
+          <label>Ship date</label>
+          <input type="date" name="ship_date" value="{{ q.ship_date if q else '' }}" required />
+        </div>
+
+        <div>
+          <label>Contract Type</label>
+          <select name="contract_type" required>
+            <option value="NAC" {% if q and q.contract_type == 'NAC' %}selected{% endif %}>NAC</option>
+            <option value="FAK" {% if q and q.contract_type == 'FAK' %}selected{% endif %}>FAK</option>
+            <option value="SPOT" {% if q and q.contract_type == 'SPOT' %}selected{% endif %}>SPOT</option>
+          </select>
+        </div>
+
+        <div>
+          <button type="submit">Search</button>
+          <button type="submit" formaction="/download" formmethod="get">Download CSV</button>
+          <a href="/" class="clear-btn">Clear</a>
+        </div>
+
+        
+      </div>
+
+      <div class="hint">Try: USNYC → NLRTM, 40HC, ship date 2026-01-10</div>
+    </form>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if results is not none %}
+      <h2>Results ({{ results|length }})</h2>
+
+      {% if results|length == 0 %}
+        <div class="hint">No matching rates found for that query.</div>
+      {% else %}
+        <table>
+          <thead>
+            <tr>
+              <th>Origin</th><th>Destination</th>
+              <th>Trade</th>
+              <th>Eq</th>
+              <th>Contract Type</th>
+              <th>Currency</th>
+              <th>Base Rate</th>
+              <th>Bunker</th>
+              {% if q and q.dg %}<th>DG</th>{% endif %}
+              <th>All-in Ocean</th>
+              <th>Service</th>
+              <th>Effective</th>
+              <th>Expiry</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+              <tr>
+                <td>{{ r.origin_unlocode }} — {{ r.origin_name or '' }}</td>
+                <td>{{ r.destination_unlocode }} — {{ r.destination_name or '' }}</td>
+                <td>{{ r.trade }}</td>
+                <td>{{ r.equipment_type }}</td>
+                <td>{{ r.contract_type }}</td>
+                <td>{{ r.currency }}</td>
+                <td>{{ r.base_rate }}</td>
+                <td>{{ r.bunker_rate }}</td>
+                {% if q and q.dg %}<td>{{ r.dg_charge }}</td>{% endif %}
+                <td>{{ r.all_in_ocean }}</td>
+                <td>{{ r.service_level }}</td>
+                <td>{{ r.effective_date }}</td>
+                <td>{{ r.expiry_date }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    {% endif %}
+
+      <script>
+        async function wireAutocomplete(inputId, listId) {
+          const input = document.getElementById(inputId);
+          const list = document.getElementById(listId);
+
+          let last = "";
+          input.addEventListener("input", async () => {
+            const q = input.value.trim();
+            if (q.length < 2 || q === last) return;
+            last = q;
+
+            const res = await fetch(`/api/ports?q=${encodeURIComponent(q)}&limit=10`);
+            const data = await res.json();
+
+            list.innerHTML = "";
+            for (const item of data.items) {
+              const opt = document.createElement("option");
+              opt.value = item.label; // what user sees + selects
+              list.appendChild(opt);
+            }
+          });
+        }
+
+        wireAutocomplete("origin_input", "origin_list");
+        wireAutocomplete("destination_input", "destination_list");
+      </script>
+
+
+  </body>
+</html>
+
