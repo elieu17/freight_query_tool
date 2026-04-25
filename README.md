@@ -89,6 +89,7 @@ The system supports pricing visibility, faster decision-making, and improved ope
 ```bash
 uvicorn app.main:app --reload
 
+```
 ## Live Demo
 
 https://freight-rate-query-engine.onrender.com
