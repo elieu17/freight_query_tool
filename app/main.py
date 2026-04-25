@@ -19,8 +19,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse(
-        "index.html",
-        {
+        name="index.html",
+        context={
             "request": request,
             "results": None,
             "error": None,
@@ -62,14 +62,14 @@ def rates_page(
         }
 
         return templates.TemplateResponse(
-    "index.html",
-        {
+    name="index.html",
+    context={
         "request": request,
         "results": results,
         "error": None,
         "q": q
-        }
-    )
+    }
+)
     finally:
         db.close()
 
